@@ -213,7 +213,7 @@ void coalesce(void *bp)
             prev_size = GET_SIZE( HDPR(PREV_BLKP(bp)) );
             ttl_size = cur_size + prev_size;    
 
-            PUT( HDPR(PREV_BLKP(bp)), PACK(ttl_size, 1) );
+            PUT( HDPR(PREV_BLKP(bp)), PACK(ttl_size, 0) );
 
             #if DEBUG
                 printf("prev block is coalesced."
@@ -227,7 +227,7 @@ void coalesce(void *bp)
             next_size = GET_SIZE( HDPR(NEXT_BLKP(bp)) );
             ttl_size = cur_size + next_size;    
 
-            PUT( HDPR(bp), PACK(ttl_size, 1) );
+            PUT( HDPR(bp), PACK(ttl_size, 0) );
             
             #if DEBUG
                 printf("next block is coalesced."
