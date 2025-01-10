@@ -32,14 +32,14 @@
 
 /* get pointer to next\prev payload block */
 #define NEXT_BLKP(bp)   (FTPR(bp) + 2 * WSIZE) 
-#define PREV_BLKP(bp)   (HDPR(bp) -  (GET_SIZE(HDPR(bp) - WSIZE)))
+#define PREV_BLKP(bp)   (bp - GET_SIZE(HDPR(bp) - WSIZE))
 
 
 #define EXT_NIGGA_CHUNK     512
 
 /* for additional info */
 #define DEBUG 0
-#define NIGGA_PRINT 0
+#define NIGGA_PRINT 1
 
 /* 
 HEADER
@@ -61,6 +61,9 @@ PAYLOAD IS DOUBLE WORD ALIGNET (DWSIZE)
 
 static char *mem_heap;
 static char *mem_brk;
+
+extern void nig_itoa(int val, char *dst);
+extern void niga_print(char *format, int count, ...);
 
 
 static void *nig_sbrk(intptr_t inc)
@@ -124,7 +127,7 @@ static void *extend_heap(size_t words)
     PUT( HDPR(NEXT_BLKP(bp)), PACK(0, 1));   //  mark new epilogue
     
     #if NIGGA_PRINT
-        printf("%d NIGGAbytes was allocated\n", size);
+        niga_print("%d NIGGAbytes was allocated\n", 1, size);
     #endif
 
     coalesce(bp);
@@ -152,10 +155,10 @@ void mem_init()
     mem_heap = sbrk(4 * WSIZE);
     mem_brk = mem_heap + 4 * WSIZE;     //  init first time mem_break
     
-    #if DEBUG
+    /* #if DEBUG
         printf("mem_heap: %p\n", mem_heap);
         printf("mem_brk1: %p\n", mem_brk);
-    #endif
+    #endif */
 
     PUT(mem_heap, PACK(0, 1));                      //  alignment
     PUT(mem_heap + 1 * WSIZE, PACK(DWSIZE, 1));     //  prologue header
@@ -164,9 +167,9 @@ void mem_init()
 
     extend_heap(EXT_NIGGA_CHUNK/WSIZE);
     
-    #if DEBUG
+    /* #if DEBUG
         printf("mem_brk2: %p\n", mem_brk);
-    #endif
+    #endif */
 }
 
 
@@ -174,6 +177,7 @@ void nigga_free(void *bp)
 {
     PUT(HDPR(bp),  PACK( GET_SIZE(HDPR(bp)), 0) );    // mark header as free
     PUT(FTPR(bp),  PACK( GET_SIZE(FTPR(bp)), 0) );    // mark footer as free
+    niga_print("free: %d niggabytes\n", 1, GET_SIZE(HDPR(bp)));
     coalesce(bp);
 }
 
@@ -194,6 +198,7 @@ void coalesce(void *bp)
 
     switch ((prev_fa << 1) | next_fa){
         case 0:        
+
             next_size = GET_SIZE( HDPR(NEXT_BLKP(bp)) );
             cur_size  = GET_SIZE( HDPR(bp) );
             prev_size = GET_SIZE( HDPR(PREV_BLKP(bp)) );
@@ -202,13 +207,14 @@ void coalesce(void *bp)
             PUT( HDPR(PREV_BLKP(bp)), PACK(ttl_size, 0) );
             
             #if DEBUG
-                printf("prev and next block are coalesced together."
-                    " New free block size: %d\n", ttl_size);
+                niga_print("prev and next block are coalesced together."
+                    " New free block size: %d\n", 1, ttl_size);
             #endif
 
             break;
     
         case 1:        
+
             cur_size  = GET_SIZE( HDPR(bp) );
             prev_size = GET_SIZE( HDPR(PREV_BLKP(bp)) );
             ttl_size = cur_size + prev_size;    
@@ -216,10 +222,9 @@ void coalesce(void *bp)
             PUT( HDPR(PREV_BLKP(bp)), PACK(ttl_size, 0) );
 
             #if DEBUG
-                printf("prev block is coalesced."
-                    " New free block size: %d\n", ttl_size);
+                niga_print("prev block is coalesced."
+                    " New free block size: %d\n", 1, ttl_size);
             #endif
-
             break;
 
         case 2:
@@ -230,14 +235,14 @@ void coalesce(void *bp)
             PUT( HDPR(bp), PACK(ttl_size, 0) );
             
             #if DEBUG
-                printf("next block is coalesced."
-                    " New free block size: %d\n", ttl_size);
+                niga_print("next block is coalesced."
+                    " New free block size: %d\n", 1, ttl_size);
             #endif
 
             break;
         case 3:
             #if DEBUG 
-                printf("nothing to coalesce\n");
+                niga_print("nothing to coalesce\n", 0);
             #endif
             
             break;
@@ -257,9 +262,10 @@ static void *first_fit(int size)
             return (void *) -1;
         }
 
-        if (GET_SIZE(HDPR(p)) >= size){
+        if (GET_SIZE(HDPR(p)) >= size && !GET_FA_STATUS(HDPR(p))){
             return p;
         } 
+
         p = NEXT_BLKP(p);
     }
 }
@@ -294,11 +300,18 @@ void *niggalloc(int size)
 
 int main(int argc, char *argv[])
 {
+
+    /*  UNCOMMENT FOR TESTING PURPOSES
     mem_init();
 
     char *p = niggalloc(1024);
-    memcpy(p, "nigger", 7);
-    printf("%s\n", p);
+    memcpy(p, "nigger\n", 8);
+    niga_print(p, 0);
+    char *p1 = niggalloc(512);
+    char *p2 = niggalloc(256);
+    nigga_free(p);
+    char *p3 = niggalloc(120);
+    niga_print(p3, 0); */
 
     return 0;
 }
