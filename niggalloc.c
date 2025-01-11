@@ -300,8 +300,6 @@ void *niggalloc(int size)
 
 int main(int argc, char *argv[])
 {
-
-    /*  UNCOMMENT FOR TESTING PURPOSES
     mem_init();
 
     char *p = niggalloc(1024);
@@ -311,7 +309,7 @@ int main(int argc, char *argv[])
     char *p2 = niggalloc(256);
     nigga_free(p);
     char *p3 = niggalloc(120);
-    niga_print(p3, 0); */
+    niga_print(p3, 0);
 
     return 0;
 }
