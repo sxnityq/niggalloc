@@ -34,11 +34,16 @@ How to store information about which blocks are allocated and which are free? We
  Block format is general idea how to divide heap into blocks. 
 
  **Header** -> general information about block
+
  **Block size** -> how many bytes occupies block (including header and footer)
+ 
  **Info bits**    -> is block allocated (1) or free (0)
-  **Payload** -> actual requested data
-  **Padding** -> aligning (8 bytes)
-  **Footer** -> Identical copy of header 
+
+**Payload** -> actual requested data
+
+**Padding** -> aligning (8 bytes)
+
+**Footer** -> Identical copy of header 
 
 ### 2 Placement:
   How to find proper free blocks?
