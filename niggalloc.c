@@ -281,7 +281,6 @@ void *niggalloc(int size)
     int fsize;
     char *p;
 
-
     wsize = ALIGN;
 
     if (size > ALIGN){
@@ -302,7 +301,7 @@ void *niggalloc(int size)
         SPLITTING
             1) if free block size - allocated request size > min block size ->
                 CUT INTO 2 CHUNKS
-            2) if free block size - allocated request size > min block size ->
+            2) if free block size - allocated request size < min block size ->
                 ALLOCATE WHOLE FREE BLOCK
     */
     
