@@ -9,6 +9,7 @@
 #define WSIZE   sizeof(int)
 #define DWSIZE  sizeof(long)
 #define ALIGN   DWSIZE  // how many bytes to use with aligning 
+#define MIN_BLOCK_SIZE  ALIGN + 2 * WSIZE       // minimum block size
 
 #define GET(p)              (*(unsigned int *) (p))
 #define PUT(p, val)         ((*(unsigned int *) (p)) = val)
@@ -38,7 +39,7 @@
 #define EXT_NIGGA_CHUNK     512
 
 /* for additional info */
-#define DEBUG 0
+#define DEBUG 1
 #define NIGGA_PRINT 1
 
 /* 
@@ -121,6 +122,7 @@ static void *extend_heap(size_t words)
     if ( (*(int *)(bp)) ==  -1){
         return NULL;
     }
+    coalesce(bp);
 
     PUT(HDPR(bp), PACK(size,  0));           //  mark current epilogue as free header
     PUT(FTPR(bp), PACK(size, 0));            //  mark new free block's footer
@@ -129,8 +131,6 @@ static void *extend_heap(size_t words)
     #if NIGGA_PRINT
         niga_print("%d NIGGAbytes was allocated\n", 1, size);
     #endif
-
-    coalesce(bp);
     return bp;
 }
 
@@ -177,7 +177,11 @@ void nigga_free(void *bp)
 {
     PUT(HDPR(bp),  PACK( GET_SIZE(HDPR(bp)), 0) );    // mark header as free
     PUT(FTPR(bp),  PACK( GET_SIZE(FTPR(bp)), 0) );    // mark footer as free
-    niga_print("free: %d niggabytes\n", 1, GET_SIZE(HDPR(bp)));
+    
+    #if NIGGA_PRINT
+        niga_print("free: %d niggabytes\n", 1, GET_SIZE(HDPR(bp)));
+    #endif
+
     coalesce(bp);
 }
 
@@ -223,7 +227,7 @@ void coalesce(void *bp)
 
             #if DEBUG
                 niga_print("prev block is coalesced."
-                    " New free block size: %d\n", 1, ttl_size);
+                    " New free block size: %d\n",1, ttl_size);
             #endif
             break;
 
@@ -274,7 +278,9 @@ static void *first_fit(int size)
 void *niggalloc(int size)
 {
     int wsize;
+    int fsize;
     char *p;
+
 
     wsize = ALIGN;
 
@@ -286,13 +292,33 @@ void *niggalloc(int size)
         wsize += ALIGN - (wsize % ALIGN);
     }
 
-    p = first_fit(size);
+    p = first_fit(wsize);
     
     if (p == (void *) -1){
         p = extend_heap(wsize / WSIZE);
     }
 
-    PUT( HDPR(p), PACK(wsize + 2 * WSIZE, 1));
+    /* 
+        SPLITTING
+            1) if free block size - allocated request size > min block size ->
+                CUT INTO 2 CHUNKS
+            2) if free block size - allocated request size > min block size ->
+                ALLOCATE WHOLE FREE BLOCK
+    */
+    
+    fsize = GET_SIZE(HDPR(p));
+
+    if (fsize - (wsize + 2 * WSIZE) > MIN_BLOCK_SIZE){
+        PUT( HDPR(p), PACK(wsize + 2 * WSIZE, 1));
+        PUT( FTPR(p), PACK(wsize + 2 * WSIZE, 1));
+
+        PUT(HDPR(NEXT_BLKP(p)), PACK(fsize - (wsize + 2 * WSIZE), 0));
+        PUT(FTPR(NEXT_BLKP(p)), PACK(fsize - (wsize + 2 * WSIZE), 0));
+
+    } else {
+        PUT( HDPR(p), PACK( fsize, 1 ));
+        PUT( FTPR(p), PACK( fsize, 1 ));
+    }
     return p;
 
 }
@@ -303,13 +329,12 @@ int main(int argc, char *argv[])
     mem_init();
 
     char *p = niggalloc(1024);
-    memcpy(p, "nigger\n", 8);
-    niga_print(p, 0);
-    char *p1 = niggalloc(512);
-    char *p2 = niggalloc(256);
-    nigga_free(p);
+    memcpy(p, "nigger", 7);
+    char *p2 = niggalloc(500);
+    printf("p2: %p\n", p2);
     char *p3 = niggalloc(120);
-    niga_print(p3, 0);
-
+    nigga_free(p);
+    char *p4 = niggalloc(1000);
+    printf("p4: %p\t%s\n", p4, p4);
     return 0;
 }
